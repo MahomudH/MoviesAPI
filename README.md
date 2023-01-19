@@ -23,3 +23,17 @@
      CORS is often used to allow web pages to access resources on a different domain, such as a REST API. Without CORS,
      web pages would only be able to make requests to the same domain that served the web page, which would limit
      the functionality of web applications.
+
+<hr>
+<li>Add Database Model</li>
+     
+     you need to install some packages like: 
+     1- Microsoft.EntityFrameworkCore
+     2- Microsoft.EntityFrameworkCore.SqlServer => or the suitable package for the type you use 
+     3- Microsoft.EntityFrameworkCore.Tools
+     
+     To connect your app with database you need to follow this steps:
+     1- install the above packages
+     2- create ApplicationDbContext and make it inherat from DbContext
+     3- go to appsetting.json and add your ConnectionString 
+     4- add your service in program.cs

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MoviesAPI.Services.Genres;
 using MoviesAPI.Services.Movies;
@@ -12,26 +13,29 @@ namespace MoviesAPI.Controllers
     {
         private readonly IMoviesService _moviesService;
         private readonly IGenreService _genreService;
+        private readonly IMapper _mapper;
 
         private List<string> _allowedExtentions = new List<string> { ".png", ".jpg", ".jfif" };
         private long _maxAllowedPosterSize = 1048576;
 
         public MoviesController(
             IMoviesService moviesService,
-            IGenreService genreService
-            )
+            IGenreService genreService,
+            IMapper mapper)
         {
             _moviesService = moviesService;
             _genreService = genreService;
+            _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
         {
             var movies = await _moviesService.GetAll();
-            //todo map movies to dto
 
-            return Ok(movies);
+            var output = _mapper.Map<IEnumerable<MovieDetailsDto>>(movies);
+
+            return Ok(output);
         }
 
         [HttpGet("{id}")]
@@ -61,9 +65,10 @@ namespace MoviesAPI.Controllers
         public async Task<IActionResult> GetByGenreIdAsync(byte genreId)
         {
             var movies = await _moviesService.GetAll(genreId);
-            //todo map movies to dto
 
-            return Ok(movies);
+            var output = _mapper.Map<MovieDetailsDto>(movies);
+
+            return Ok(output);
         }
 
         [HttpPost]
@@ -83,15 +88,8 @@ namespace MoviesAPI.Controllers
 
             await input.Poster.CopyToAsync(dataStream);
 
-            var movie = new Movie
-            {
-                Title = input.Title,
-                Year = input.Year,
-                Rate = input.Rate,
-                StoreLine = input.StoreLine,
-                GenreId = input.GenreId,
-                Poster = dataStream.ToArray()
-            };
+            var movie = _mapper.Map<Movie>(input);
+            movie.Poster = dataStream.ToArray();
 
             await _moviesService.Add(movie);
 

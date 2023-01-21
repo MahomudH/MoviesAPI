@@ -10,7 +10,7 @@ namespace MoviesAPI.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        private new List<string> _allowedExtentions = new List<string>() { ".png", ".jpg", ".jfif" };
+        private List<string> _allowedExtentions = new List<string>() { ".png", ".jpg", ".jfif" };
         private long _maxAllowedPosterSize = 1048576;
 
         public MoviesController(ApplicationDbContext context)
@@ -65,6 +65,29 @@ namespace MoviesAPI.Controllers
             return Ok(dto);
         }
 
+        [HttpGet("GetByGenreId")]
+        public async Task<IActionResult> GetByGenreIdAsync(int id)
+        {
+            var movies = await _context.Movies
+                .Where(m => m.GenreId == id)
+                .OrderByDescending(m => m.Rate)
+                .Include(m => m.Genre)
+                .Select(m => new MovieDetailsDto
+                {
+                    Id = m.Id,
+                    Title = m.Title,
+                    Rate = m.Rate,
+                    Poster = m.Poster,
+                    GenreId = m.GenreId,
+                    StoreLine = m.StoreLine,
+                    Year = m.Year,
+                    GenreName = m.Genre.Name
+                })
+                .ToListAsync();
+
+            return Ok(movies);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateAsync([FromForm] MovieDto input)
         {
@@ -93,6 +116,58 @@ namespace MoviesAPI.Controllers
             };
 
             await _context.AddAsync(movie);
+            await _context.SaveChangesAsync();
+
+            return Ok(movie);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateAsync(int id, [FromForm] UpdateMovieDto input)
+        {
+            var movie = await _context.Movies.FindAsync(id);
+
+            if(movie == null)
+                return NotFound($"No movie was found with id: {id}");
+
+            var isValidGenre = await _context.Genres.AnyAsync(g => g.Id == input.GenreId);
+            if (!isValidGenre)
+                return BadRequest("Invalid genre ID!");
+
+            if (input.Poster != null)
+            {
+                if (!_allowedExtentions.Contains(Path.GetExtension(input.Poster.FileName).ToLower()))
+                    return BadRequest("Only .png, .jpg and .jfif images are allowed!");
+
+                if (input.Poster.Length > _maxAllowedPosterSize)
+                    return BadRequest("Max allowed size for poster is 1MB!");
+
+                using var dataStream = new MemoryStream();
+
+                await input.Poster.CopyToAsync(dataStream);
+
+                movie.Poster = dataStream.ToArray();
+            }
+
+            movie.Title=input.Title;
+            movie.Year=input.Year;
+            movie.Rate=input.Rate;
+            movie.StoreLine=input.StoreLine;
+            movie.GenreId=input.GenreId;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(movie);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAsync(int id)
+        {
+            var movie = await _context.Movies.FindAsync(id);
+
+            if (movie == null)
+                return NotFound($"No movie was found with id: {id}");
+
+            _context.Movies.Remove(movie);
             await _context.SaveChangesAsync();
 
             return Ok(movie);

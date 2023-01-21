@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using MoviesAPI.Models;
 using MoviesAPI.Services.Genres;
+using MoviesAPI.Services.Movies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddTransient<IGenreService, GenreService>();
+builder.Services.AddTransient<IMoviesService, MoviesService>();
 
 builder.Services.AddCors();
 
